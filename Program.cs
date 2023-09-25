@@ -1,3 +1,9 @@
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using NN.Cart.data;
+using NN.Cart.services;
+using NN.Cart.services.interfaces;
+
 namespace NN.Cart
 {
     public class Program
@@ -7,11 +13,14 @@ namespace NN.Cart
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddDbContext<CartDBContext>(options => options.UseSqlServer(
+                builder.Configuration.GetConnectionString("CartConnection")
+            ));
+            builder.Services.AddScoped<ISeedService, SeedService>();
 
             var app = builder.Build();
 
