@@ -1,6 +1,7 @@
-version: '3.8'
+version: '2.0'
+
 services:
-  api:
+ api:
     image: andrejcarstens/nncart:latest
     container_name: cart-api
     environment:
@@ -11,7 +12,7 @@ services:
      - db  # Wait for the SQL Server container to be ready
     networks:
       - cart-network
-  db:
+ db:
     image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: sql-server
     environment:
@@ -21,5 +22,73 @@ services:
       - "1433:1433"  # Map host port 1433 to container port 1433
     networks:
       - cart-network
+
+ elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.0
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+    environment:
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - node.master=true
+      - node.data=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - http.cors.allow-headers=Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
+      - http.cors.allow-credentials=true
+    networks:
+      - cart-network
+ kibana:
+    image: docker.elastic.co/kibana/kibana:7.5.0
+    environment:
+      - "ELASTICSEARCH_URL=http://elasticsearch:9200"
+      - server.name=kibana
+      - server.host="0"
+      - xpack.security.enabled=true
+      - xpack.monitoring.enabled=true
+      - xpack.ml.enabled=false
+      - xpack.graph.enabled=false
+      - xpack.reporting.enabled=false
+      - xpack.grokdebugger.enabled=false
+    ports:
+      - "5601:5601"
+    networks:
+      - cart-network
+    depends_on:
+      - elasticsearch
+
+ head:
+    image: mobz/elasticsearch-head:5
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+    ports:
+      - "9100:9100"
+    networks:
+      - cart-network
+volumes:
+   esdata1:
+    driver: local
+   esdata2:
+    driver: local
+  #esconfig1:
+  #  driver: local
+  #esconfig2:
+  #  driver: local
+
 networks:
   cart-network:
+    driver: bridge  
+    
